@@ -4,6 +4,15 @@ from requests import *
 from mail import *
 from threading import Thread
 
+logo=r'''
+ _   _ _                   _                _           _     
+| \ | | |    ___   __ _   / \   _ __   __ _| |_   _ ___(_)___ 
+|  \| | |   / _ \ / _` | / _ \ | '_ \ / _` | | | | / __| / __|
+| |\  | |__| (_) | (_| |/ ___ \| | | | (_| | | |_| \__ \ \__ \
+|_| \_|_____\___/ \__, /_/   \_\_| |_|\__,_|_|\__, |___/_|___/
+                  |___/                       |___/                 v0.1
+'''
+
 s=session()
 class IPinfo:
     def __init__(self,ip,count):
@@ -104,6 +113,7 @@ def sendMail():
     newMail.initMess(subject,fromHeader,toHeader,content,minorType)
     newMail.sendMail()
 def main():
+    print(logo)
     IPS=ReadIP()
     IPset=OrginizeData(IPS)
     IPlst=HandleIP(IPset)
