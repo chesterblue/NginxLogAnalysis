@@ -1,7 +1,8 @@
 from smtplib import *
 from email.mime.text import MIMEText
 from email.header import Header
-  
+import datetime
+
 class mail:
     def __init__(self,_host="localhost",_user="",_pass=""):
         self._host = _host
@@ -37,4 +38,77 @@ class mail:
             print ("认证失败")
         except SMTPException:
             print("Error")
+
+def generateHTML(IPlst):
+    html=r""
+    for ipinfo in IPlst:
+        stats=ipinfo.getInfo()
+        if stats['status']=="success":
+            html+=r"""<tr>"""
+            html+=r"""<td bgcolor="#f2fbfe">"""
+            html+=ipinfo.getIP()
+            html+=r"</td>"
+            html+=r"<td>"
+            html+=stats['country']
+            html+=r"</td>"
+            html+=r"""<td bgcolor="#f2fbfe">"""
+            html+=stats['countryCode']
+            html+=r"</td>"
+            html+=r"<td>"
+            html+=stats['regionName']
+            html+=r"</td>"
+            html+=r"""<td bgcolor="#f2fbfe">"""
+            html+=stats['city']
+            html+=r"</td>"
+            html+=r"<td>"
+            html+=str(stats['lat'])
+            html+=r"</td>"
+            html+=r"""<td bgcolor="#f2fbfe">"""
+            html+=str(stats['lon'])
+            html+=r"</td>"
+            html+=r"<td>"
+            html+=stats['timezone']
+            html+=r"</td>"
+            html+=r"""<td bgcolor="#f2fbfe">"""
+            html+=str(ipinfo.getCount())
+            html+=r"</td>"
+    return html
+
+def sendMail(html):
+    date=str(datetime.date.today())
+    mail_host="smtp.qq.com"  #设置服务器
+    mail_user="2958931649@qq.com"    #用户名
+    mail_pass="bmosoqkybixddhcg"   #口令 
+    sender = '2958931649@qq.com'    #发送方
+    receivers = ['1191975374@qq.com']  # 接收邮件
+    subject = '%s Nginx 日志分析结果'%(date)
+    fromHeader = "NginxLog"
+    toHeader = "Admin"
+    content=r"""<!DOCTYPE html>
+<html lang="en">
+  <meta name="viewport" content="width=device-width">
+  <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+  <title>Nginx's Logs</title>
+  <body>
+    <table border="0" bgcolor="#cccccc">
+      <tr bgcolor="#e9faff">
+        <th>IP</th>
+        <th>Country</th>
+        <th>CountryCode</th>
+        <th>RegionName</th>
+        <th>City</th>
+        <th>Lat</th>
+        <th>Lon</th>
+        <th>Timezone</th>
+        <th>Count</th>
+      </tr>
+      %s
+    </table>
+    </body>
+</html>"""%(html)
+    minorType = "html"  #发送html格式的邮件（默认为palin类型）
+    newMail = mail(mail_host,mail_user,mail_pass)
+    newMail.setPara(sender,receivers)
+    newMail.initMess(subject,fromHeader,toHeader,content,minorType)
+    newMail.sendMail()
 

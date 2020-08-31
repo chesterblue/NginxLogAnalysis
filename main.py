@@ -1,9 +1,10 @@
-import re
-import json
+import re, json, queue, log
 from requests import *
 from mail import *
 from threading import Thread
+from unziplog import un_gz
 
+''' global variates '''
 logo=r'''
  _   _ _                   _                _           _     
 | \ | | |    ___   __ _   / \   _ __   __ _| |_   _ ___(_)___ 
@@ -13,7 +14,10 @@ logo=r'''
                   |___/                       |___/                 v0.1
 '''
 
+IPlst=[] #IP类列表
 s=session()
+
+
 class IPinfo:
     def __init__(self,ip,count):
         self.ip=ip
@@ -27,21 +31,19 @@ class IPinfo:
     def getCount(self):
         return self.count
 
-'''
-    读取日志文件
-'''
+
+# 读取日志文件
 def ReadIP():
     pat=re.compile(r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
 
-    logFile=open("G:\\安全学习资料\\python网络\\python\\流量分析\\access.log","r")
+    logFile=open("./access.log","r")
     info=logFile.read()
     #匹配日志中的IP
     IPS=pat.findall(info)
+    logFile.close()
     return IPS
 
-'''
-    整理IP
-'''
+# 整理IP
 def OrginizeData(IPS):
     IPset={}
     for ip in IPS:
@@ -50,30 +52,42 @@ def OrginizeData(IPS):
         else:
             IPset[ip]=1
     return IPset
-'''
-    查询IP信息
-'''
+
+# 查询IP信息
 def QueryIP(ip):
     url="http://ip-api.com/json/"+ip
     html=s.get(url)
     content=html.content
     stats=json.loads(content)
     return stats
-'''
-    添加IP对象到列表
-'''
-def addList(IPlst,ip,count,stats):
+
+# 添加IP对象到列表
+def addList(ip,count,stats):
+    global IPlst
     ipinfo=IPinfo(ip,count)
     ipinfo.addInfo(stats)
     IPlst.append(ipinfo)
 
-def HandleIP(IPset):
-    IPlst=[]
-    for ip in IPset.items():
-        stats=QueryIP(ip[0])
-        addList(IPlst,ip[0],ip[1],stats)
-    return IPlst
+# 初始化队列
+def InitQueue(query_queue,IPset):
+    for IPTuple in IPset.items():
+        query_queue.put(IPTuple)
 
+# 多线程循环查询IP
+def MultiThreadHandleIP(query_queue,IPset):
+    while not query_queue.empty():
+        IPTuple=query_queue.get(block = True,timeout = 1)
+        stats=QueryIP(IPTuple[0])
+        addList(IPTuple[0],IPTuple[1],stats)
+        query_queue.task_done()
+
+# 多线程
+def MultiThread(ThreadNum,query_queue,IPset):
+    for i in range(ThreadNum):
+        t=Thread(target=MultiThreadHandleIP,args=(query_queue,IPset))
+        t.start()
+
+# 输出查询IP后的信息
 def PrintInfo(ipinfo):
     ip=ipinfo.getIP()
     count=ipinfo.getCount()
@@ -92,35 +106,31 @@ def PrintInfo(ipinfo):
         print("非法IP")
     print("-------------------------------")
 
-# def modifyHTML():
-#     goto
-def sortByCount(IPlst):
-    return sorted(IPlst, key=lambda ipinfo: ipinfo.count,reverse=True) 
+def sortByCount():
+    global IPlst
+    IPlst=sorted(IPlst, key=lambda ipinfo: ipinfo.count,reverse=True) 
 
-def sendMail():
-    mail_host="smtp.qq.com"  #设置服务器
-    mail_user="2958931649@qq.com"    #用户名
-    mail_pass="yyrthptqjsuodgga"   #口令 
-    sender = '2958931649@qq.com'    #发送方
-    receivers = ['1191975374@qq.com']  # 接收邮件
-    subject = 'Python SMTP HTML测试'
-    fromHeader = "NginxLog"
-    toHeader = "Admin"
-    content = """<a href="https://www.relish.fun">博客网站</a>"""
-    minorType = "html"  #发送html格式的邮件（默认为palin类型）
-    newMail = mail(mail_host,mail_user,mail_pass)
-    newMail.setPara(sender,receivers)
-    newMail.initMess(subject,fromHeader,toHeader,content,minorType)
-    newMail.sendMail()
 def main():
     print(logo)
-    IPS=ReadIP()
-    IPset=OrginizeData(IPS)
-    IPlst=HandleIP(IPset)
-    IPlst=sortByCount(IPlst)
-    for ipinfo in IPlst:
-        PrintInfo(ipinfo)
-    # sendMail()
+    IPS=ReadIP() #从文件中读取IP
+    log.write("Read IP from log")
+    IPset=OrginizeData(IPS) #处理重复IP
+    log.write("Orginize Data")
+    query_queue=queue.Queue(len(IPset))
+    log.write("new queue")
+    InitQueue(query_queue,IPset)
+    log.write("Init Queue")
+    MultiThread(10,query_queue,IPset)
+    log.write("use MutilThread")
+    query_queue.join()
+    sortByCount()
+    log.write("Sorted")
+    # for ipinfo in IPlst:
+    #     PrintInfo(ipinfo)
+    log.write("Print Information")
+    html=generateHTML(IPlst)
+    sendMail(html)
+    log.write("send mail")
     
 
 
