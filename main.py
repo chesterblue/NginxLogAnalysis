@@ -1,8 +1,7 @@
-import re, json, queue, log
+import re, json, queue, log, os, datetime, configparser
 from requests import *
 from mail import *
 from threading import Thread
-from unziplog import un_gz
 
 ''' global variates '''
 logo=r'''
@@ -16,7 +15,10 @@ logo=r'''
 
 IPlst=[] #IP类列表
 s=session()
-
+config=configparser.ConfigParser()
+dir = os.path.dirname(os.path.abspath(__file__))
+config_file_path = dir+"/config.ini"
+config.read(config_file_path,encoding='utf-8')
 
 class IPinfo:
     def __init__(self,ip,count):
@@ -31,13 +33,25 @@ class IPinfo:
     def getCount(self):
         return self.count
 
+# gunzip log file
+def gunzip_log():
+    today = datetime.date.today()
+    today_string = str(today) #'2020-09-09'
+    date_lst = today_string.split('-')
+    today_date = ''.join(date_lst)
+    log_root = config.get('log', 'log')
+    from_file = log_root+"/access.log-"+today_date+".gz"
+    to_file = dir+"/access.log"
+    #gunzip -c $file > /root/NginxLogAnalysis/access.log
+    shell = "gunzip -c %s > %s"%(from_file,to_file)
+    os.system(shell)
 
 # 读取日志文件
 def ReadIP():
-    pat=re.compile(r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
-
-    logFile=open("./access.log","r")
-    info=logFile.read()
+    pat = re.compile(r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
+    filepath = dir+"/access.log"
+    logFile = open(filepath,"r")
+    info = logFile.read()
     #匹配日志中的IP
     IPS=pat.findall(info)
     logFile.close()
@@ -112,6 +126,8 @@ def sortByCount():
 
 def main():
     print(logo)
+    gunzip_log()
+    log.write("Gunzip nginx's logs to my space")
     IPS=ReadIP() #从文件中读取IP
     log.write("Read IP from log")
     IPset=OrginizeData(IPS) #处理重复IP
