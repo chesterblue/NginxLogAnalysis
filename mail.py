@@ -1,7 +1,7 @@
 from smtplib import *
 from email.mime.text import MIMEText
 from email.header import Header
-import datetime
+import datetime, configparser, os
 
 class mail:
     def __init__(self,_host="localhost",_user="",_pass=""):
@@ -18,7 +18,8 @@ class mail:
         self.message['To'] = Header(toHeader, 'utf-8')          #接收方名
     def sendMail(self):
         try:
-            self.smtpObj = SMTP_SSL(self._host)
+            self.smtpObj = SMTP()
+            self.smtpObj.connect(self._host, '25')
             self.smtpObj.login(self._user,self._pass)
             self.smtpObj.sendmail(self.sender, self.receivers, self.message.as_string())
             print ("邮件发送成功")
@@ -76,11 +77,15 @@ def generateHTML(IPlst):
 
 def sendMail(html):
     date=str(datetime.date.today())
-    mail_host="smtp.qq.com"  #设置服务器
-    mail_user="2958931649@qq.com"    #用户名
-    mail_pass="bmosoqkybixddhcg"   #口令 
-    sender = '2958931649@qq.com'    #发送方
-    receivers = ['1191975374@qq.com']  # 接收邮件
+    config = configparser.ConfigParser()
+    dir = os.path.dirname(os.path.abspath(__file__))
+    filepath = dir + "/config.ini"
+    config .read(filepath,encoding='utf-8')
+    mail_host = config.get('mail', 'host') #设置邮件服务器地址
+    mail_user = config.get('mail', 'user') #用户名
+    mail_pass = config.get('mail', 'pass') #口令 
+    sender = config.get('mail', 'sender') #发送方
+    receivers = config.get('mail','receivers') #接收邮件方
     subject = '%s Nginx 日志分析结果'%(date)
     fromHeader = "NginxLog"
     toHeader = "Admin"
@@ -111,4 +116,3 @@ def sendMail(html):
     newMail.setPara(sender,receivers)
     newMail.initMess(subject,fromHeader,toHeader,content,minorType)
     newMail.sendMail()
-
