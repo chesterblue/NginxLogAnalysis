@@ -18,8 +18,11 @@ class mail:
         self.message['To'] = Header(toHeader, 'utf-8')          #接收方名
     def sendMail(self):
         try:
-            self.smtpObj = SMTP()
-            self.smtpObj.connect(self._host, '25')
+            # Linux
+            self.smtpObj = SMTP(self._host,587)
+            # Windows
+            # self.smtpObj = SMTP()
+            # self.smtpObj.connect(self._host, '25')
             self.smtpObj.login(self._user,self._pass)
             self.smtpObj.sendmail(self.sender, self.receivers, self.message.as_string())
             print ("邮件发送成功")
@@ -85,7 +88,7 @@ def sendMail(html):
     mail_user = config.get('mail', 'user') #用户名
     mail_pass = config.get('mail', 'pass') #口令 
     sender = config.get('mail', 'sender') #发送方
-    receivers = config.get('mail','receivers') #接收邮件方
+    receivers = [config.get('mail','receivers')] #接收邮件方
     subject = '%s Nginx 日志分析结果'%(date)
     fromHeader = "NginxLog"
     toHeader = "Admin"
