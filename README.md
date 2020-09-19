@@ -14,6 +14,6 @@ log = /var/log/nginx
 #Your mail host  
 host = 127.0.0.1  
 user = admin@test.com  
-pass = bmosoqkybixddhcg  
+pass = xxxxxxxxxxxxxxxx  
 sender = admin@test.com  
 receivers = test1@test.com  
