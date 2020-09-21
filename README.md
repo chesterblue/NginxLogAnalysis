@@ -17,3 +17,17 @@ user = admin@test.com
 pass = xxxxxxxxxxxxxxxx  
 sender = admin@test.com  
 receivers = test1@test.com  
+
+How to make this procedure work:  
+You need to write fllowing to /etc/cron.d  
+### First: 
+cd /etc/cron.d  
+vim newcronfile
+### Second:  
+SHELL=/bin/bash  
+PATH=/sbin:/bin:/usr/sbin:/usr/bin  
+MAILTO=root  
+HOME=/root/test/NginxLogAnalysis #The directory where your procedure is located  
+27 22 * * * root python /root/test/NginxLogAnalysis/main.py  
+  
+### You can restart the service if necessary
